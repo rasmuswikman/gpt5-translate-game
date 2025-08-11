@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-type Word = { source: string; target: string }; // `target` must be the FINNISH infinitive (e.g. "hypätä")
+type Word = { source: string; target: string };
 
 const shuffle = <T,>(arr: T[]) => {
   const a = [...arr];
@@ -13,32 +13,24 @@ const shuffle = <T,>(arr: T[]) => {
 
 const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
   const [wordIndex, setWordIndex] = useState(0);
-  const current = words[wordIndex];
-  const target = current.target.toUpperCase(); // use uppercase for display
-
-  // each slot may contain an item or null
+  const [target, setTarget] = useState("");
   const [slots, setSlots] = useState<
     Array<{ id: string; char: string } | null>
   >([]);
-  // pool of available letters (objects so duplicates are unique)
   const [pool, setPool] = useState<Array<{ id: string; char: string }>>([]);
-  const [success, setSuccess] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    initForWord(wordIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wordIndex]);
-
-  function initForWord(index: number) {
-    setSuccess(false);
-    const chars = target.split("");
-    const items = chars.map((ch, i) => ({
-      id: `${i}-${ch}-${Math.random().toString(36).slice(2)}`,
-      char: ch,
-    }));
-    setPool(shuffle(items));
-    setSlots(Array(chars.length).fill(null));
-  }
+    const current = words[wordIndex];
+    const upperTarget = current.target.toUpperCase();
+    setTarget(upperTarget);
+    const chars = upperTarget
+      .split("")
+      .map((ch, i) => ({ id: `${i}-${ch}-${Math.random()}`, char: ch }));
+    setPool(shuffle(chars));
+    setSlots(Array(upperTarget.length).fill(null));
+    setFeedback("");
+  }, [wordIndex, words]);
 
   function onDragStart(e: React.DragEvent, id: string) {
     e.dataTransfer.setData("text/plain", id);
@@ -56,46 +48,37 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
     const id = e.dataTransfer.getData("text/plain");
     if (!id) return;
 
-    // Try to find item in pool
-    const itemInPool = pool.find((p) => p.id === id);
+    let item = pool.find((p) => p.id === id) || null;
 
-    // If not in pool, it may come from another slot; remove it from that slot
-    let item = itemInPool ?? null;
     if (!item) {
-      let found: { id: string; char: string } | null = null;
       setSlots((prev) => {
-        const newSlots = [...prev];
-        for (let i = 0; i < newSlots.length; i++) {
-          const s = newSlots[i];
-          if (s && s.id === id) {
-            found = s;
-            newSlots[i] = null;
+        const updated = [...prev];
+        for (let i = 0; i < updated.length; i++) {
+          if (updated[i]?.id === id) {
+            item = updated[i];
+            updated[i] = null;
             break;
           }
         }
-        return newSlots;
+        return updated;
       });
-      item = found;
     }
 
     if (!item) return;
 
-    // If slot already had a letter, move it back to pool
     setSlots((prev) => {
-      const newSlots = [...prev];
-      const replaced = newSlots[slotIndex];
-      if (replaced) {
-        setPool((prevPool) => [...prevPool, replaced]);
-      }
-      newSlots[slotIndex] = item!;
-      return newSlots;
+      const updated = [...prev];
+      const replaced = updated[slotIndex];
+      if (replaced) setPool((prevPool) => [...prevPool, replaced]);
+      updated[slotIndex] = item!;
+      return updated;
     });
 
-    // Remove from pool (if it was there)
     setPool((prev) => prev.filter((p) => p.id !== id));
-
-    // small delay to let states settle before checking
-    setTimeout(checkAnswer, 0);
+    setTimeout(
+      () => checkAnswer([...slots.map((s) => (s ? s : null))], target),
+      0
+    );
   }
 
   function handleDropOnPool(e: React.DragEvent<HTMLDivElement>) {
@@ -103,50 +86,55 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
     const id = e.dataTransfer.getData("text/plain");
     if (!id) return;
 
-    let moved: { id: string; char: string } | null = null;
     setSlots((prev) => {
-      const newSlots = [...prev];
-      for (let i = 0; i < newSlots.length; i++) {
-        const s = newSlots[i];
-        if (s && s.id === id) {
-          moved = s;
-          newSlots[i] = null;
+      const updated = [...prev];
+      for (let i = 0; i < updated.length; i++) {
+        if (updated[i]?.id === id) {
+          setPool((prevPool) => [
+            ...prevPool,
+            updated[i] as { id: string; char: string },
+          ]);
+          updated[i] = null;
           break;
         }
       }
-      return newSlots;
+      return updated;
     });
-
-    if (moved) setPool((prev) => [...prev, moved!]);
   }
 
   function removeFromSlot(slotIndex: number) {
     setSlots((prev) => {
-      const newSlots = [...prev];
-      const s = newSlots[slotIndex];
-      if (s) {
-        setPool((prevPool) => [...prevPool, s]);
-        newSlots[slotIndex] = null;
+      const updated = [...prev];
+      if (updated[slotIndex]) {
+        setPool((prevPool) => [
+          ...prevPool,
+          updated[slotIndex] as { id: string; char: string },
+        ]);
+        updated[slotIndex] = null;
       }
-      return newSlots;
+      return updated;
     });
+    setFeedback("");
   }
 
-  function checkAnswer() {
-    const answer = slots.map((s) => (s ? s.char : "")).join("");
-    if (answer.length === target.length && answer === target) {
-      setSuccess(true);
+  function checkAnswer(
+    currentSlots: Array<{ id: string; char: string } | null>,
+    tgt: string
+  ) {
+    const answer = currentSlots.map((s) => (s ? s.char : "")).join("");
+    if (answer.length === tgt.length) {
+      if (answer === tgt) {
+        setFeedback("✅ Correct!");
+      } else {
+        setFeedback("❌ Wrong, try again!");
+      }
     } else {
-      setSuccess(false);
+      setFeedback("");
     }
   }
 
   function nextWord() {
     setWordIndex((i) => (i + 1) % words.length);
-  }
-
-  function reset() {
-    initForWord(wordIndex);
   }
 
   return (
@@ -161,7 +149,7 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
         Translate the verb (always in INFINITIVE)
       </div>
       <div style={{ fontSize: 28, fontWeight: 600, marginBottom: 24 }}>
-        {current.source.toUpperCase()}
+        {words[wordIndex].source.toUpperCase()}
       </div>
 
       <div
@@ -177,6 +165,7 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
             key={i}
             onDragOver={onDragOver}
             onDrop={(e) => handleDropOnSlot(e, i)}
+            onClick={() => removeFromSlot(i)}
             style={{
               borderBottom: "2px solid black",
               width: 48,
@@ -187,8 +176,6 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
               fontSize: 26,
               cursor: slot ? "pointer" : "default",
             }}
-            onClick={() => removeFromSlot(i)}
-            title={slot ? "Click to return to pool" : "Drop a letter here"}
           >
             {slot ? slot.char : ""}
           </div>
@@ -225,27 +212,20 @@ const TranslateGame: React.FC<{ words: Word[] }> = ({ words }) => {
         ))}
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <button onClick={reset} style={{ marginRight: 8 }}>
-          Reset
-        </button>
+      {feedback && (
+        <div style={{ fontSize: 18, marginBottom: 12 }}>{feedback}</div>
+      )}
+
+      <div>
         <button
-          onClick={nextWord}
-          disabled={!success}
+          onClick={() => setWordIndex(wordIndex)}
           style={{ marginRight: 8 }}
         >
+          Reset
+        </button>
+        <button onClick={nextWord} style={{ marginRight: 8 }}>
           Next
         </button>
-        {success && (
-          <span style={{ color: "green", marginLeft: 8 }}>
-            Correct — well done!
-          </span>
-        )}
-      </div>
-
-      <div style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
-        Tip: drag letters into the dashes. Click an occupied dash to return the
-        letter to the pool.
       </div>
     </div>
   );
