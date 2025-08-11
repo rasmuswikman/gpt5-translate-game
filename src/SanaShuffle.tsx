@@ -66,6 +66,10 @@ const SanaShuffle: React.FC = () => {
 
   return (
     <div className="font-sans text-center select-none p-6 max-w-screen-md mx-auto">
+      <h1 className="mb-4 font-semibold text-2xl text-gray-800">
+        Guess the Swedish translation
+      </h1>
+
       <WordDisplay finnishWord={wordPairs[currentPairIndex].fi} />
 
       <LetterDragDrop
