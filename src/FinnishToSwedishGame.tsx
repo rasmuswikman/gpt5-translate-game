@@ -35,7 +35,14 @@ const FinnishToSwedishGame: React.FC = () => {
   );
   const [message, setMessage] = useState("");
 
+  const onDragStart = () => {
+    // Disable scrolling when dragging
+    document.body.style.overflow = "hidden";
+  };
+
   const onDragEnd = (result: DropResult) => {
+    document.body.style.overflow = "";
+
     if (!result.destination) return;
 
     const newLetters = Array.from(letters);
@@ -92,7 +99,7 @@ const FinnishToSwedishGame: React.FC = () => {
           </span>
         </p>
 
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <Droppable droppableId="letters" direction="horizontal">
             {(provided) => (
               <div
@@ -101,7 +108,7 @@ const FinnishToSwedishGame: React.FC = () => {
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  gap: 12,
+                  gap: 6,
                   flexWrap: "wrap",
                   marginBottom: 24,
                   padding: "0 1rem",
@@ -120,20 +127,20 @@ const FinnishToSwedishGame: React.FC = () => {
                         {...provided.dragHandleProps}
                         style={{
                           userSelect: "none",
-                          padding: "16px 20px",
-                          fontSize: 28,
+                          padding: "6px 10px", // a bit of padding inside the smaller box
+                          fontSize: 18, // smaller font to fit nicely
                           fontWeight: "700",
                           color: snapshot.isDragging ? "#fff" : "#222",
                           backgroundColor: snapshot.isDragging
                             ? "#0070f3"
                             : "#e0e7ff",
-                          borderRadius: 12,
+                          borderRadius: 8,
                           boxShadow: snapshot.isDragging
-                            ? "0 8px 16px rgba(0,112,243,0.4)"
-                            : "0 4px 8px rgba(0,0,0,0.1)",
+                            ? "0 6px 12px rgba(0,112,243,0.4)"
+                            : "0 3px 6px rgba(0,0,0,0.1)",
                           textAlign: "center",
-                          width: 50,
-                          height: 50,
+                          width: 35,
+                          height: 35,
                           display: "flex",
                           justifyContent: "center",
                           alignItems: "center",
