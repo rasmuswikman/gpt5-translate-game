@@ -1,29 +1,16 @@
 {
   "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig to read more about this file */
-    "target": "ES2020",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "useDefineForClassFields": true,
-
-    /* Modules */
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-
-    /* Emit */
-    "noEmit": true,
-
-    /* Interop Constraints */
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "allowImportingTsExtensions": true,
-    "esModuleInterop": true,
+    "target": "ES6", // Modern enough for browsers and Parcel
+    "module": "ESNext", // Let Parcel handle module bundling
+    "moduleResolution": "node", // Node-style resolution (important!)
+    "jsx": "react", // JSX support for React
+    "strict": true, // Enable all strict type-checking options
+    "esModuleInterop": true, // Allows default import compatibility for CommonJS modules
     "forceConsistentCasingInFileNames": true,
-
-    /* Type Checking */
-    "strict": true,
-
-    /* Completeness */
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true, // Skip checking of declaration files to speed up builds
+    "resolveJsonModule": true, // Support importing JSON modules (optional)
+    "isolatedModules": true // Ensures compatibility with transpilers like Babel or Parcel
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
